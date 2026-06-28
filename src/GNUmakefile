@@ -25,7 +25,7 @@ endif
 STRIP		= m68k-amigaos-strip --remove-section=.comment
 CC		= m68k-amigaos-gcc
 
-OPT		=-Os -m68020-60 -mtune=68030
+OPT		=-Os -m68000 -mtune=68030
 
 # -fbaserel does not work, -msmall-code likewise, -fno-builtin requires ixemul
 
@@ -39,7 +39,16 @@ ifeq "$(OS)" "MorphOS"
 LDLIBS1 =
 KILLDEV = KillDevice RemCDFS
 else
-LDLIBS1 = -lamiga
+# Link the Kickstart 1.3 flavour of libnix's integer divide/modulo helpers
+# (__divsi3/__modsi3/__udivsi3/__umodsi3).  The default (libnix20) helpers
+# implement division by calling utility.library through libnix's own
+# _UtilityBase, which is only set up by libnix's startup code.  As the handler
+# is linked -nostartfiles that base stays NULL and the first integer division
+# gurus (80000003) - and utility.library doesn't exist on Kickstart 1.3 at all.
+# libnix13's helpers do the division in software, so they work on -m68000 and
+# on Kickstart 1.3.  Must precede -lamiga / the implicit libnix so these win.
+# (68020+ builds use the native divs.l and never reference these helpers.)
+LDLIBS1 = -lnix13 -lamiga
 KILLDEV =
 endif
 
